@@ -1,10 +1,25 @@
-# opendisplay-win
+<p align="center">
+  <img src="assets/logo.svg" width="200" alt="A PC monitor and an iPad sharing one Windows desktop">
+</p>
 
-Use an iPad as a second monitor for **Windows**, over Wi-Fi or USB, driving the
-**unmodified** [OpenDisplay](https://github.com/peetzweg/opendisplay) receiver
-app on the iPad. OpenDisplay ships a macOS sender only; this project
-reimplements that sender side for Windows and speaks the iPad's exact wire
-protocol, so the iOS app needs no changes.
+<h1 align="center">opendisplay-win</h1>
+
+<p align="center">
+  <b>Use an iPad as a second monitor for Windows, over Wi-Fi or USB.</b>
+</p>
+
+<p align="center">
+  <a href="https://github.com/martinhoess/opendisplay-win/releases/latest">Download</a> ·
+  <a href="INSTALL.md">Install</a> ·
+  <a href="#how-it-works">How it works</a> ·
+  <a href="ROADMAP.md">Roadmap</a>
+</p>
+
+opendisplay-win drives the **unmodified**
+[OpenDisplay](https://github.com/peetzweg/opendisplay) receiver app on the
+iPad. OpenDisplay ships a macOS sender only; this project reimplements that
+sender side for Windows and speaks the iPad's exact wire protocol, so the iOS
+app needs no changes.
 
 > **Status: prototype.** It works end to end: real desktop on the iPad, finger
 > touch, Apple Pencil with pressure and tilt, live cursor, Wi-Fi or USB, iPads
