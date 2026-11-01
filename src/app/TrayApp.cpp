@@ -9,6 +9,7 @@
 #include "net/Mdns.h"
 
 #include <commctrl.h>
+#include <uxtheme.h>
 #include <shellapi.h>
 #include <wtsapi32.h>
 
@@ -23,6 +24,7 @@
 
 #pragma comment(lib, "shell32.lib")
 #pragma comment(lib, "comctl32.lib")
+#pragma comment(lib, "uxtheme.lib")
 
 namespace od {
 
@@ -53,10 +55,6 @@ enum : UINT {
 };
 
 const wchar_t* const kWndClass = L"opendisplay-win-tray";
-
-// Dialog layout (dialog units) matching resources.rc - fixed size with tabs.
-constexpr int kSettingsWidth = 272;
-constexpr int kSettingsHeight = 294;
 
 // GUID_CONSOLE_DISPLAY_STATE, spelled out so no INITGUID / extra lib is needed.
 constexpr GUID kConsoleDisplayState = {0x6fe69556, 0x704a, 0x47a0, {0x8f, 0x24, 0xc2, 0x8d, 0x93, 0x6f, 0xda, 0x47}};
@@ -790,8 +788,8 @@ void LayoutSettingsTabPages(HWND dlg)
     TabCtrl_AdjustRect(tabs, FALSE, &display);
     MapWindowPoints(tabs, dlg, reinterpret_cast<POINT*>(&display), 2);
 
-    // Design page origin / extent from resources.rc (dialog units).
-    RECT design{16, 34, 256, 264};
+    // Design page origin from resources.rc (dialog units).
+    RECT design{16, 34, 0, 0};
     MapDialogRect(dlg, &design);
 
     const int pad = 4;
@@ -1048,6 +1046,9 @@ INT_PTR CALLBACK SettingsDlgProc(HWND dlg, UINT msg, WPARAM wParam, LPARAM lPara
             FillBackendCombo(dlg, cfg->displayBackend);
             SelectEncodeCombos(dlg, *cfg);
 
+            // The controls are the tab's siblings: give the dialog the tab body's
+            // background, or they paint a different shade over it.
+            EnableThemeDialogTexture(dlg, ETDT_ENABLETAB);
             InitSettingsTabs(dlg);
             LayoutSettingsTabPages(dlg);
             state->settingsTab = -1; // force first ShowSettingsTab to treat as switch-in

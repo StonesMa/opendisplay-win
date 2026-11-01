@@ -86,6 +86,7 @@ target_compile_definitions(opendisplay-win PRIVATE
 # (populated from the command line) for the headless CLI mode.
 target_link_options(opendisplay-win PRIVATE
   "/MANIFESTUAC:level='asInvoker' uiAccess='false'"
+  "/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'"
   "/SUBSYSTEM:WINDOWS"
   "/ENTRY:mainCRTStartup"
 )
