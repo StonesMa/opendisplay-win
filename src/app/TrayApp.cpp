@@ -788,13 +788,12 @@ void LayoutSettingsTabPages(HWND dlg)
     TabCtrl_AdjustRect(tabs, FALSE, &display);
     MapWindowPoints(tabs, dlg, reinterpret_cast<POINT*>(&display), 2);
 
-    // Design page origin from resources.rc (dialog units).
-    RECT design{16, 34, 0, 0};
+    // Center the page content (extent from resources.rc, dialog units) in the tab.
+    RECT design{16, 34, 324, 264};
     MapDialogRect(dlg, &design);
 
-    const int pad = 4;
-    const int dx = (display.left + pad) - design.left;
-    const int dy = (display.top + pad) - design.top;
+    const int dx = (display.left + display.right - design.left - design.right) / 2;
+    const int dy = (display.top + display.bottom - design.top - design.bottom) / 2;
 
     auto moveId = [&](int id) {
         HWND ctl = GetDlgItem(dlg, id);
