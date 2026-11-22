@@ -1,0 +1,51 @@
+name: Windows touch switch
+
+on:
+  push:
+    branches: [feat/disable-receiver-touch]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build original application with MSVC
+        shell: pwsh
+        run: |
+          cmake -S . -B build
+          if ($LASTEXITCODE) { throw 'CMake configuration failed' }
+          cmake --build build --config Release --target opendisplay-win
+          if ($LASTEXITCODE) { throw 'MSVC build failed' }
+      - name: Test receiver input policy without injecting desktop input
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $setup = Join-Path $vs 'VC\Auxiliary\Build\vcvars64.bat'
+          $command = 'call "{0}" >nul && cl /nologo /std:c++latest /EHsc /O2 /MT /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX /Isrc tools/input_toggle_test.cpp /Fe:build/input_toggle_test.exe user32.lib && build\input_toggle_test.exe' -f $setup
+          & cmd.exe /d /c $command
+          if ($LASTEXITCODE) { throw 'Input policy tests failed' }
+          $command = 'call "{0}" >nul && cl /nologo /std:c++latest /EHsc /O2 /MT /DUNICODE /D_UNICODE /DWIN32_LEAN_AND_MEAN /DNOMINMAX /Isrc tools/config_input_test.cpp src/app/Config.cpp /Fe:build/config_input_test.exe' -f $setup
+          & cmd.exe /d /c $command
+          if ($LASTEXITCODE) { throw 'Config test build failed' }
+          $data = Join-Path $env:RUNNER_TEMP 'opendisplay-input-test'
+          New-Item -ItemType Directory -Force $data | Out-Null
+          & build/config_input_test.exe $data
+          if ($LASTEXITCODE) { throw 'Config persistence test failed' }
+      - name: Verify native settings and tray in disposable Windows session
+        shell: pwsh
+        run: ./tools/input_toggle_gui_test.ps1 -Exe (Resolve-Path build/Release/opendisplay-win.exe)
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: opendisplay-win-touch-switch-x64
+          path: |
+            build/Release/opendisplay-win.exe
+            LICENSE
+            build/settings-input-preview.png
+          if-no-files-found: error
