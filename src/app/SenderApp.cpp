@@ -379,6 +379,16 @@ void SenderApp::NotifyStatus()
         g_statusPosted = false;
 }
 
+SenderApp::SenderApp() : input_(std::make_unique<InputInjector>())
+{
+    input_->SetEnabled(!Config::Load().disableReceiverInput);
+}
+
+void SenderApp::SetReceiverInputEnabled(bool enabled)
+{
+    input_->SetEnabled(enabled);
+}
+
 SenderApp::~SenderApp()
 {
     Stop();
@@ -464,7 +474,7 @@ void SenderApp::RunLoop(std::string ip, uint16_t port)
     // the next connect.
     std::unique_ptr<DisplayBackend> backend;
     DesktopDuplication dup;
-    InputInjector input;
+    InputInjector& input = *input_;
     std::mutex pipelineMutex;
     bool gpuNv12Path = false; // VideoProcessor BGRA->NV12 + EncodeDxgiNv12
     bool haveGpuDesktopFrame = false; // true after first successful GPU present
@@ -1046,11 +1056,13 @@ std::thread reader([&] {
                         // holds it ~90% of the time (each capture blocks up to
                         // one frame interval), and taking it here starved
                         // input injection — the actual cause of the sluggish
-                        // touch/drag. `input` is only ever touched by this
-                        // reader thread (its initial SetMonitorRect happens on
+                        // touch/drag. Input events and mapping updates run on
+                        // this reader thread (initial SetMonitorRect happens on
                         // the main thread before this thread starts, and
                         // rotation rebuilds run on this same thread), so no
-                        // lock is needed. Refresh the mapping rect first
+                        // pipeline lock is needed. The injector has its own
+                        // short lock for the tray's enable/disable switch.
+                        // Refresh the mapping rect first
                         // (thread-safe read) so a live monitor drag is followed
                         // immediately instead of only after the next reconnect.
                         refreshInputRect();

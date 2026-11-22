@@ -209,6 +209,7 @@ Config Config::Load()
         cfg.port = static_cast<uint16_t>(port);
     ReadBool(json, "autoReconnect", cfg.autoReconnect);
     ReadBool(json, "usbWifiFailover", cfg.usbWifiFailover);
+    ReadBool(json, "disableReceiverInput", cfg.disableReceiverInput);
     ReadBool(json, "separateUsbWifiPicture", cfg.separateUsbWifiPicture);
     {
         const std::string v = ReadString(json, "displayBackend");
@@ -280,6 +281,7 @@ void Config::Save() const
          << "  \"port\": " << out.port << ",\n"
          << "  \"autoReconnect\": " << (out.autoReconnect ? "true" : "false") << ",\n"
          << "  \"usbWifiFailover\": " << (out.usbWifiFailover ? "true" : "false") << ",\n"
+         << "  \"disableReceiverInput\": " << (out.disableReceiverInput ? "true" : "false") << ",\n"
          << "  \"displayBackend\": \""
          << ((out.displayBackend == "mtt" || out.displayBackend == "parsec") ? out.displayBackend : "auto")
          << "\",\n"

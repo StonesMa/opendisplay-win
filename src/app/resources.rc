@@ -65,6 +65,7 @@ BEGIN
     LTEXT           "Preset:", IDC_ADV_WIFI_PRESET_LABEL, 172, 192, 36, 10
     COMBOBOX        IDC_WIFI_ENCODE_PRESET, 210, 190, 106, 60, CBS_DROPDOWNLIST | WS_VSCROLL | WS_TABSTOP
 
+    AUTOCHECKBOX    "Disable receiver touch, pen and scrolling", IDC_DISABLE_RECEIVER_INPUT, 24, 203, 292, 10
     PUSHBUTTON      "Restart as administrator", IDC_RESTART_ADMIN, 24, 214, 140, 14
     LTEXT           "Admin is only needed so touch works in elevated windows, and once to register a new iPad resolution (Windows may ask for permission).", IDC_ADMIN_NOTE, 24, 232, 292, 28
 

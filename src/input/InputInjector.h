@@ -4,7 +4,9 @@
 
 #include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <unordered_map>
+#include <unordered_set>
 
 #include "net/Protocol.h"
 
@@ -47,6 +49,10 @@ public:
     void HandlePencil(const PencilMsg& pencil);
     void HandleProximity(const ProximityMsg& proximity);
 
+    // Safe from the tray thread. Disabling immediately releases contacts,
+    // including when the receiver is idle and sends no further input.
+    void SetEnabled(bool enabled);
+
     // Call when a connection ends. Pen/touch devices outlive a reconnect, so a
     // link that drops mid-stroke would otherwise leave injected contacts down.
     void EndSession();
@@ -66,6 +72,12 @@ private:
     // UP [| CANCELED]); every other down contact gets INCONTACT|UPDATE.
     void FlushTouches(UINT32 focusId, UINT32 focusPhaseFlag);
     void ReleaseAllTouches();
+    void EndSessionLocked();
+
+    std::mutex inputMutex_;
+    bool enabled_ = true;
+    std::unordered_set<UINT32> suppressedTouches_;
+    bool requirePenDown_ = false;
 
     RECT monitorRect_{};
     std::atomic<double> contentFx_{1.0};

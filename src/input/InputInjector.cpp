@@ -139,6 +139,21 @@ void InputInjector::ReleaseAllTouches()
 
 void InputInjector::HandleTouch(const TouchMsg& touch)
 {
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    if (!enabled_) {
+        if (touch.phase == TouchPhase::Began || touch.phase == TouchPhase::Moved)
+            suppressedTouches_.insert(touch.id);
+        else
+            suppressedTouches_.erase(touch.id);
+        return;
+    }
+    if (touch.phase == TouchPhase::Began)
+        suppressedTouches_.erase(touch.id);
+    else if (suppressedTouches_.contains(touch.id)) {
+        if (touch.phase == TouchPhase::Ended || touch.phase == TouchPhase::Cancelled)
+            suppressedTouches_.erase(touch.id);
+        return; // a finger held through the toggle needs a fresh contact
+    }
     if (!EnsureTouchDevice())
         return;
 
@@ -180,6 +195,9 @@ void InputInjector::HandleTouch(const TouchMsg& touch)
 
 void InputInjector::HandleScroll(const ScrollMsg& scroll)
 {
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    if (!enabled_)
+        return;
     if (scroll.dy != 0.0) {
         LONG delta = static_cast<LONG>((scroll.dy / kPixelsPerWheelNotch) * WHEEL_DELTA);
         if (delta != 0)
@@ -270,6 +288,13 @@ void InputInjector::ReleasePenIfDown(POINT pt)
 
 void InputInjector::HandlePencil(const PencilMsg& pencil)
 {
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    if (!enabled_)
+        return;
+    if (pencil.phase == PencilPhase::Down)
+        requirePenDown_ = false;
+    if (pencil.phase == PencilPhase::Move && requirePenDown_)
+        return;
     if (!EnsurePenDevice())
         return;
 
@@ -311,6 +336,28 @@ void InputInjector::HandlePencil(const PencilMsg& pencil)
 
 void InputInjector::EndSession()
 {
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    EndSessionLocked();
+    suppressedTouches_.clear();
+    requirePenDown_ = !enabled_;
+}
+
+void InputInjector::SetEnabled(bool enabled)
+{
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    if (enabled_ == enabled)
+        return;
+    enabled_ = enabled;
+    if (!enabled) {
+        for (const auto& [id, contact] : touches_)
+            suppressedTouches_.insert(id);
+        requirePenDown_ = true;
+        EndSessionLocked();
+    }
+}
+
+void InputInjector::EndSessionLocked()
+{
     ReleaseAllTouches();
 
     if (penDevice_ == nullptr)
@@ -326,6 +373,9 @@ void InputInjector::EndSession()
 
 void InputInjector::HandleProximity(const ProximityMsg& proximity)
 {
+    std::lock_guard<std::mutex> lock(inputMutex_);
+    if (!enabled_)
+        return;
     if (!EnsurePenDevice())
         return;
     if (proximity.entering == penInRange_)

@@ -110,6 +110,19 @@ The steps in detail, including admin rights and autostart, are in
   and Wi-Fi quality settings* (each with a **Dynamic**/**Fixed** mode and a
   **Speed**/**Balanced**/**Quality** preset); *Restart as administrator*.
 
+## Disable receiver input (this fork)
+
+Use **Settings → Advanced → Disable receiver touch, pen and scrolling**, or
+right-click the tray icon and check **Disable receiver touch**. This applies
+to all connected receivers (iPad or Android) immediately, without reconnecting
+or interrupting the picture. Active touch/pen contacts are released. Lift a
+finger or pen before starting a new contact after re-enabling.
+
+The choice is saved as `disableReceiverInput` in the existing config file and
+survives reconnects and app restarts. It is off by default, preserving upstream
+input behavior. The receiver's own interface and this PC's local input devices
+are unaffected; no receiver app or wire-protocol update is needed.
+
 ## Pause mode
 
 Locking Windows (Win+L), the display turning off, or a UAC prompt no longer

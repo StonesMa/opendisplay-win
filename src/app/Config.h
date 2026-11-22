@@ -42,6 +42,10 @@ struct Config {
     // the configured Wi-Fi address. Default ON matches today's behavior.
     bool usbWifiFailover = true;
 
+    // Display-only mode: block receiver touch, pen and scrolling. Existing
+    // configurations retain input-on behavior until explicitly disabled.
+    bool disableReceiverInput = false;
+
     // Simple Picture control: "speed" | "balanced" | "quality".
     // Always Dynamic under the hood when separateUsbWifiPicture is false.
     std::string picturePreset = "speed";

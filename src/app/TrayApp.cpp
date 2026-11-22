@@ -48,6 +48,7 @@ enum : UINT {
     IDM_DISCONNECT,
     IDM_SETTINGS,
     IDM_EXIT,
+    IDM_DISABLE_RECEIVER_INPUT,
 
     // One command per configured iPad, IDM_DEVICE_FIRST + index. Toggles that
     // device's sender on its own, so the others keep streaming.
@@ -116,8 +117,18 @@ void RebuildSenders(TrayContext* ctx)
     for (auto& app : ctx->apps)
         app->Stop();
     ctx->apps.clear();
-    for (size_t i = 0; i < ctx->cfg.devices.size(); ++i)
+    for (size_t i = 0; i < ctx->cfg.devices.size(); ++i) {
         ctx->apps.push_back(std::make_unique<SenderApp>());
+        ctx->apps.back()->SetReceiverInputEnabled(!ctx->cfg.disableReceiverInput);
+    }
+}
+
+void ApplyReceiverInputPolicy(TrayContext* ctx)
+{
+    for (auto& app : ctx->apps)
+        app->SetReceiverInputEnabled(!ctx->cfg.disableReceiverInput);
+    Logf("input", "receiver touch, pen and scrolling %s\n",
+         ctx->cfg.disableReceiverInput ? "disabled" : "enabled");
 }
 
 // The label an iPad publishes for itself. Its Bonjour instance name is what the
@@ -707,7 +718,7 @@ const int kAdvancedControlIds[] = {
     IDC_ADV_USB_PRESET_LABEL, IDC_USB_ENCODE_PRESET,
     IDC_ADV_WIFI_LABEL, IDC_ADV_WIFI_MODE_LABEL, IDC_WIFI_ENCODE_MODE,
     IDC_ADV_WIFI_PRESET_LABEL, IDC_WIFI_ENCODE_PRESET,
-    IDC_RESTART_ADMIN, IDC_ADMIN_NOTE,
+    IDC_DISABLE_RECEIVER_INPUT, IDC_RESTART_ADMIN, IDC_ADMIN_NOTE,
 };
 
 void UpdateSeparateEncodeEnable(HWND dlg, bool advancedVisible)
@@ -1036,6 +1047,7 @@ INT_PTR CALLBACK SettingsDlgProc(HWND dlg, UINT msg, WPARAM wParam, LPARAM lPara
             SetDlgItemInt(dlg, IDC_PORT, cfg->port, FALSE);
             CheckDlgButton(dlg, IDC_AUTORECONNECT, cfg->autoReconnect ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(dlg, IDC_USB_WIFI_FAILOVER, cfg->usbWifiFailover ? BST_CHECKED : BST_UNCHECKED);
+            CheckDlgButton(dlg, IDC_DISABLE_RECEIVER_INPUT, cfg->disableReceiverInput ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(dlg, IDC_AUTOSTART, IsAutostartEnabled() ? BST_CHECKED : BST_UNCHECKED);
             CheckDlgButton(dlg, IDC_SEPARATE_USB_WIFI, cfg->separateUsbWifiPicture ? BST_CHECKED : BST_UNCHECKED);
 
@@ -1133,6 +1145,7 @@ INT_PTR CALLBACK SettingsDlgProc(HWND dlg, UINT msg, WPARAM wParam, LPARAM lPara
                     cfg->port = static_cast<uint16_t>(port);
                 cfg->autoReconnect = IsDlgButtonChecked(dlg, IDC_AUTORECONNECT) == BST_CHECKED;
                 cfg->usbWifiFailover = IsDlgButtonChecked(dlg, IDC_USB_WIFI_FAILOVER) == BST_CHECKED;
+                cfg->disableReceiverInput = IsDlgButtonChecked(dlg, IDC_DISABLE_RECEIVER_INPUT) == BST_CHECKED;
                 cfg->displayBackend = ReadBackendCombo(dlg);
                 SetAutostart(IsDlgButtonChecked(dlg, IDC_AUTOSTART) == BST_CHECKED);
                 cfg->picturePreset = ReadPictureCombo(dlg);
@@ -1175,6 +1188,8 @@ void ShowContextMenu(HWND hwnd, TrayContext* ctx)
                     several ? L"Connect all" : L"Connect");
     }
     AppendMenuW(menu, MF_SEPARATOR, 0, nullptr);
+    AppendMenuW(menu, MF_STRING | (ctx->cfg.disableReceiverInput ? MF_CHECKED : 0),
+                IDM_DISABLE_RECEIVER_INPUT, L"Disable receiver touch");
     AppendMenuW(menu, MF_STRING, IDM_SETTINGS, L"Settings");
     AppendMenuW(menu, MF_STRING, IDM_EXIT, L"Quit");
 
@@ -1227,6 +1242,7 @@ void OpenSettingsAndApply(HWND hwnd, TrayContext* ctx)
     }
 
     ctx->cfg.Save();
+    ApplyReceiverInputPolicy(ctx);
     const bool targetsChanged =
         ctx->cfg.devices != oldDevices || ctx->cfg.deviceIds != oldIds || ctx->cfg.port != oldPort;
     const bool encodeChanged =
@@ -1299,6 +1315,15 @@ LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
                 case IDM_SETTINGS:
                     OpenSettingsAndApply(hwnd, ctx);
                     return 0;
+                case IDM_DISABLE_RECEIVER_INPUT: {
+                    // Preserve runtime-learned IDs from the current config.
+                    Config current = Config::Load();
+                    current.disableReceiverInput = !ctx->cfg.disableReceiverInput;
+                    current.Save();
+                    ctx->cfg.disableReceiverInput = current.disableReceiverInput;
+                    ApplyReceiverInputPolicy(ctx);
+                    return 0;
+                }
                 case IDM_EXIT:
                     DestroyWindow(hwnd);
                     return 0;

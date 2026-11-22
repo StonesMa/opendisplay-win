@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <memory>
 #include <mutex>
 #include <string>
 #include <thread>
@@ -10,6 +11,7 @@
 namespace od {
 
 class Connection;
+class InputInjector;
 
 // Owns the sender lifecycle: connect, wait for hello, build the capture/encode
 // pipeline, stream, recover from disconnects/rotation. Can run either on a
@@ -28,7 +30,7 @@ public:
     // How the current (or last) session reached the iPad. None when idle.
     enum class Transport { None, Usb, Wifi };
 
-    SenderApp() = default;
+    SenderApp();
     ~SenderApp();
 
     SenderApp(const SenderApp&) = delete;
@@ -55,6 +57,9 @@ public:
     // Run the loop inline on the calling thread until the process is killed
     // (headless CLI). Does not return under normal operation.
     void RunBlocking(std::string ip, uint16_t port);
+
+    // Live policy switch; does not reconnect or rebuild capture/encoding.
+    void SetReceiverInputEnabled(bool enabled);
 
     // Every sender posts `msg` (wParam/lParam 0) to `hwnd` whenever anything
     // the tray shows changes: state, transport, wait reason, pause. Coalesced:
@@ -131,6 +136,8 @@ private:
     // timeout. Guarded because Stop() runs on another thread.
     std::mutex connMutex_;
     Connection* activeConn_ = nullptr;
+    // Outlives reconnects; destroyed after Stop() has joined the reader.
+    std::unique_ptr<InputInjector> input_;
 };
 
 } // namespace od
